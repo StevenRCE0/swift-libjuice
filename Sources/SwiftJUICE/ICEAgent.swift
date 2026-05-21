@@ -254,7 +254,7 @@ public final class ICEAgent: @unchecked Sendable {
         var buffer = [CChar](repeating: 0, count: Int(JUICE_MAX_SDP_STRING_LEN))
         let rc = juice_get_local_description(agent, &buffer, buffer.count)
         try check(rc)
-        return String(cString: buffer)
+        return Self.string(fromNullTerminated: buffer)
     }
 
     public func setRemoteDescription(_ sdp: String) throws {
@@ -287,7 +287,19 @@ public final class ICEAgent: @unchecked Sendable {
         var remote = [CChar](repeating: 0, count: len)
         let rc = juice_get_selected_addresses(agent, &local, len, &remote, len)
         guard rc == 0 else { return nil }
-        return (String(cString: local), String(cString: remote))
+        return (
+            Self.string(fromNullTerminated: local),
+            Self.string(fromNullTerminated: remote)
+        )
+    }
+
+    /// Decodes a null-terminated `CChar` buffer as UTF-8 without the
+    /// deprecated `String(cString:)` initializer. libjuice always emits
+    /// ASCII into these buffers, so UTF-8 decoding is lossless here.
+    private static func string(fromNullTerminated cChars: [CChar]) -> String {
+        let bytes = cChars.prefix(while: { $0 != 0 })
+            .map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
     }
 
     // MARK: - Internal
