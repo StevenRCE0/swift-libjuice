@@ -1,0 +1,5 @@
+module CJuice {
+    header "juice/juice.h"
+    link "pthread"
+    export *
+}
